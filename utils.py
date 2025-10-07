@@ -3,7 +3,10 @@ from sentence_transformers import SentenceTransformer
 import numpy as np
 import faiss
 import openai
-
+import streamlit as st
+from utils import load_pdf, embed_texts, get_answer
+import pickle
+import os
 def load_pdf(file):
     pdf_reader = PyPDF2.PdfReader(file)
     texts = [page.extract_text() for page in pdf_reader.pages]
@@ -30,3 +33,4 @@ def get_answer(query, texts, embeddings, top_k=3):
         max_tokens=256
     )
     return response.choices[0].message.content.strip()
+
