@@ -1,28 +1,32 @@
 import streamlit as st
-from utils import load_pdf, embed_texts, get_answer
-import pickle
-import os
+from utils import load_embeddings, get_answer
 
-st.title("HR Policy Chatbot")
+st.set_page_config(page_title="HR Policy Chatbot", layout="wide")
 
-OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else st.text_input("Enter OpenAI API Key:", type="password")
+st.title("🤖 HR Policy Chatbot")
+st.markdown(
+    """
+    This chatbot is trained on the organization's HR Policy document.  
+    Ask any HR-related question below 👇
+    """
+)
 
-# Only admin sees the upload/train option (you can add password protection if needed)
-is_admin = st.sidebar.checkbox("Admin: Upload/Train PDF")
-if is_admin:
-    uploaded_file = st.sidebar.file_uploader("Upload PDF", type="pdf")
-    if uploaded_file:
-        texts = load_pdf(uploaded_file)
-        embeddings = embed_texts(texts)
-        os.makedirs("embeddings", exist_ok=True)
-        with open("embeddings/HR_Policy_embeddings.pkl", "wb") as f:
-            pickle.dump((texts, embeddings), f)
-        st.success("PDF processed and embeddings saved!")
-else:
-    query = st.text_input("Ask questions about the HR Policy PDF:")
-    if query:
-        # Load embeddings from your pre-uploaded file
-        with open("embeddings/HR_Policy_embeddings.pkl", "rb") as f:
-            texts, embeddings = pickle.load(f)
-        answer = get_answer(query, texts, embeddings, openai_api_key=OPENAI_API_KEY)
-        st.markdown(f"**Answer:** {answer}")
+# Load pre-trained embeddings
+try:
+    vector_store = load_embeddings("HR_Policy_embeddings.pkl")
+except Exception as e:
+    st.error("❌ Error loading embeddings file. Please ensure 'HR_Policy_embeddings.pkl' is in the app directory.")
+    st.stop()
+
+# Chat interface
+user_query = st.text_input("Enter your question:")
+if st.button("Ask"):
+    if user_query.strip():
+        with st.spinner("Thinking..."):
+            try:
+                answer = get_answer(user_query, vector_store)
+                st.success(answer)
+            except Exception as e:
+                st.error(f"⚠️ Error: {e}")
+    else:
+        st.warning("Please enter a question to continue.")
